@@ -1,0 +1,6 @@
+{
+  "name": "Kfaster",
+  "description": "A modern, highly responsive typing test website for English and Bangla built with Google AI Studio.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
