@@ -20,13 +20,21 @@ import {
   HelpCircle,
   AlertCircle,
   Lightbulb,
-  Zap
+  Zap,
+  Share2,
+  Copy,
+  Check,
+  BookOpen,
+  Gamepad2
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { englishParagraphs, banglaParagraphs, Paragraph } from "./paragraphs";
 import { Language, Theme, TestState, Difficulty, TestStats, SecondProgress } from "./types";
 import { sounds } from "./sound";
 import PerformanceChart from "./components/PerformanceChart";
+import AdBanner from "./components/AdBanner";
+import TypingLessons from "./components/TypingLessons";
+import TypingGame from "./components/TypingGame";
 
 export default function App() {
   // Theme state
@@ -42,6 +50,7 @@ export default function App() {
   });
 
   // Test setup states
+  const [mode, setMode] = useState<"test" | "lessons" | "game">("test");
   const [language, setLanguage] = useState<Language>("en");
   const [difficulty, setDifficulty] = useState<Difficulty>("Medium");
   const [testState, setTestState] = useState<TestState>("idle");
@@ -55,6 +64,7 @@ export default function App() {
 
   // Stats timeline state for the chart
   const [progressTimeline, setProgressTimeline] = useState<SecondProgress[]>([]);
+  const [copied, setCopied] = useState<boolean>(false);
 
   // DOM Refs
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -296,6 +306,49 @@ export default function App() {
     }
   };
 
+  const getShareText = () => {
+    const langLabel = language === "en" ? "English" : "বাংলা";
+    const appUrl = window.location.origin + window.location.pathname;
+    return `⌨️ Kfaster Typing Test Result
+
+🚀 Speed: ${stats.wpm} WPM (Words Per Minute)
+📈 Characters: ${stats.cpm} CPM
+🎯 Accuracy: ${stats.accuracy}%
+⚡ Difficulty: ${difficulty} (${langLabel})
+🏆 Rating Tier: ${ratingDetails.tier}
+⏱️ Duration: 60 seconds
+
+Software built by UTTAR TECH • Powered by Google AI Studio
+Test your speed here: ${appUrl}`;
+  };
+
+  const handleCopyResults = () => {
+    const text = getShareText();
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch((err) => {
+      console.error("Failed to copy results: ", err);
+    });
+  };
+
+  const handleNativeShare = async () => {
+    const text = getShareText();
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "Kfaster Typing Test Results",
+          text: text,
+          url: window.location.href,
+        });
+      } catch (err) {
+        console.warn("Shared cancelled or failed:", err);
+      }
+    } else {
+      handleCopyResults();
+    }
+  };
+
   // Keyboard shortcut listener for Esc
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -412,6 +465,43 @@ export default function App() {
           {/* Quick controls bar */}
           <div className="flex flex-wrap items-center gap-2.5">
             
+            {/* Mode Switch (Test vs Lessons vs Games) */}
+            <div className={`p-1 rounded-lg flex items-center gap-1 ${theme === "dark" ? "bg-slate-800" : "bg-slate-100"}`}>
+              <button
+                onClick={() => setMode("test")}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold tracking-wide transition-all ${
+                  mode === "test"
+                    ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+                }`}
+              >
+                <Zap size={12} />
+                {language === "en" ? "Speed Test" : "স্পিড টেস্ট"}
+              </button>
+              <button
+                onClick={() => setMode("lessons")}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold tracking-wide transition-all ${
+                  mode === "lessons"
+                    ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+                }`}
+              >
+                <BookOpen size={12} />
+                {language === "en" ? "Lessons" : "লেসনসমূহ"}
+              </button>
+              <button
+                onClick={() => setMode("game")}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold tracking-wide transition-all ${
+                  mode === "game"
+                    ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+                }`}
+              >
+                <Gamepad2 size={12} />
+                {language === "en" ? "Arcade Game" : "আর্কেড গেম"}
+              </button>
+            </div>
+
             {/* Language toggle buttons */}
             <div className={`p-1 rounded-lg flex items-center gap-1 ${theme === "dark" ? "bg-slate-800" : "bg-slate-100"}`}>
               <button
@@ -481,7 +571,39 @@ export default function App() {
       <main className="max-w-6xl w-full mx-auto px-4 py-8 flex-grow flex flex-col justify-center">
         
         <AnimatePresence mode="wait">
-          {testState !== "completed" ? (
+          {mode === "lessons" ? (
+            <motion.div
+              key="lessons-view"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.25 }}
+              className="w-full flex justify-center"
+            >
+              <TypingLessons 
+                theme={theme}
+                language={language}
+                soundEnabled={soundEnabled}
+                onExit={() => setMode("test")}
+              />
+            </motion.div>
+          ) : mode === "game" ? (
+            <motion.div
+              key="game-view"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.25 }}
+              className="w-full flex justify-center"
+            >
+              <TypingGame 
+                theme={theme}
+                language={language}
+                soundEnabled={soundEnabled}
+                onExit={() => setMode("test")}
+              />
+            </motion.div>
+          ) : testState !== "completed" ? (
             
             // Testing Interface Screen
             <motion.div
@@ -646,6 +768,9 @@ export default function App() {
                   transition={{ duration: 0.2 }}
                 />
               </div>
+
+              {/* Ad Banner placement up side of typing panel */}
+              <AdBanner theme={theme} />
 
               {/* Core typing container card */}
               <div 
@@ -894,6 +1019,66 @@ export default function App() {
                   </div>
                 </div>
 
+              </div>
+
+              {/* Share Results Widget */}
+              <div className="p-5 md:p-6 rounded-2xl border border-indigo-500/20 bg-indigo-500/[0.02] dark:bg-indigo-500/[0.01] mb-6 flex flex-col md:flex-row md:items-center justify-between gap-5 transition-all">
+                <div className="flex-1">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                    <Share2 size={16} className="text-indigo-500" />
+                    Share Your Typing Achievement
+                  </h3>
+                  <p className="text-xs text-slate-400 dark:text-slate-400 mt-1.5 leading-relaxed">
+                    Show off your typing prowess of <strong className="text-indigo-600 dark:text-indigo-400 font-mono text-sm">{stats.wpm} WPM</strong> with <strong className="text-emerald-600 dark:text-emerald-400 font-mono text-sm">{stats.accuracy}%</strong> accuracy on your favorite platforms!
+                  </p>
+                </div>
+                
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* System Share (Native API If Available) */}
+                  {typeof navigator !== "undefined" && navigator.share && (
+                    <button
+                      onClick={handleNativeShare}
+                      className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-500/10 hover:shadow-indigo-500/20 active:scale-95 transition-all cursor-pointer"
+                    >
+                      <Share2 size={14} />
+                      Share to Apps
+                    </button>
+                  )}
+
+                  {/* Copy Link/Score */}
+                  <button
+                    onClick={handleCopyResults}
+                    className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer border ${
+                      copied 
+                        ? "bg-emerald-500/10 border-emerald-500 text-emerald-600 dark:text-emerald-400" 
+                        : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                    }`}
+                  >
+                    {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                    {copied ? "Copied Results!" : "Copy Full Report"}
+                  </button>
+
+                  {/* Twitter Share */}
+                  <a
+                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(getShareText())}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-[#1DA1F2] hover:bg-[#1a91da] text-white active:scale-95 transition-all cursor-pointer shadow-sm"
+                  >
+                    <span className="font-extrabold text-[11px] font-mono">X</span>
+                    <span>Tweet</span>
+                  </a>
+
+                  {/* WhatsApp Share */}
+                  <a
+                    href={`https://api.whatsapp.com/send?text=${encodeURIComponent(getShareText())}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-[#25D366] hover:bg-[#20ba5a] text-white active:scale-95 transition-all cursor-pointer shadow-sm"
+                  >
+                    <span className="font-bold text-[11px]">WhatsApp</span>
+                  </a>
+                </div>
               </div>
 
               {/* Graphical representation telemetry chart */}
