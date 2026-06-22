@@ -308,7 +308,6 @@ export default function App() {
 
   const getShareText = () => {
     const langLabel = language === "en" ? "English" : "বাংলা";
-    const appUrl = window.location.origin + window.location.pathname;
     return `⌨️ Kfaster Typing Test Result
 
 🚀 Speed: ${stats.wpm} WPM (Words Per Minute)
@@ -318,8 +317,8 @@ export default function App() {
 🏆 Rating Tier: ${ratingDetails.tier}
 ⏱️ Duration: 60 seconds
 
-Software built by UTTAR TECH • Powered by Google AI Studio
-Test your speed here: ${appUrl}`;
+Test your speed here: 
+https://keyboradlearning.blogspot.com`;
   };
 
   const handleCopyResults = () => {
